@@ -8,6 +8,8 @@ library(zoo)
 # (i) Linear Interpolation
 #--------------------------------------------------------------------------
 
+Group_Assignment_Dataset <- read.csv("Group_Assignment_Dataset.txt")
+
 numeric_cols <- names(Group_Assignment_Dataset)[sapply(Group_Assignment_Dataset, is.numeric)]
 
 df_interpolated <- Group_Assignment_Dataset
