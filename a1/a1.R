@@ -106,7 +106,6 @@ df_Week5 <- subset(df_zscores, DateTime >= start_date & DateTime <= end_date)
 print(start_date)
 
 
-
 #--------------------------------------------------------------------------
 #                                 Part 3
 #--------------------------------------------------------------------------
@@ -123,7 +122,7 @@ Group_Assignment_Dataset$Day <- weekdays(Group_Assignment_Dataset$DateTime)
 Group_Assignment_Dataset$Hour <- as.POSIXct(Group_Assignment_Dataset$DateTime, format = "%H:%M")
 str(Group_Assignment_Dataset)
 
-print(Group_Assignment_Dataset)
+#print(Group_Assignment_Dataset)
 # subsetting the data into day time hours and night time hours
 # using the hours specified in the assignment description
 day_time_window <- Group_Assignment_Dataset[Group_Assignment_Dataset$Time >= "07:30:00"
@@ -150,13 +149,13 @@ weekends_data_night <- night_time_window[night_time_window$Day
 
 
 # testing to see if I filtered the data correctly
-print(Group_Assignment_Dataset)
-print(day_time_window)
-print(night_time_window)
-print(weekdays_data_day)
-print(weekends_data_day)
-print(weekdays_data_night)
-print(weekends_data_night)
+#print(Group_Assignment_Dataset)
+#print(day_time_window)
+#print(night_time_window)
+#print(weekdays_data_day)
+#print(weekends_data_day)
+#print(weekdays_data_night)
+#print(weekends_data_night)
 
 table(weekends_data_night$Day)
 table(weekends_data_day$Day)
