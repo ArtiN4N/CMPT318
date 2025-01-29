@@ -102,3 +102,61 @@ start_date <- as.POSIXct("29/1/2007 00:00:00", format = "%d/%m/%Y %H:%M:%S")
 end_date   <- as.POSIXct("4/2/2007 00:00:00",  format = "%d/%m/%Y %H:%M:%S")
 
 df_Week5 <- subset(df_zscores, DateTime >= start_date & DateTime <= end_date)
+print(start_date)
+
+
+
+#--------------------------------------------------------------------------
+#                                 Part 3
+#--------------------------------------------------------------------------
+
+
+Group_Assignment_Dataset$DateTime <- as.POSIXct(paste(Group_Assignment_Dataset$Date
+                                                      ,Group_Assignment_Dataset$Time),
+                                                format="%d/%m/%Y %H:%M:%S")
+# adding hour and day rows to the data set 
+# doing this because it is easier to filter the data into different 
+# categories
+Group_Assignment_Dataset$Hour <- format(Group_Assignment_Dataset$DateTime, "%H:%M")
+Group_Assignment_Dataset$Day <- weekdays(Group_Assignment_Dataset$DateTime)  
+
+
+# subsetting the data into day time hours and night time hours
+# using the hours specified in the assignment description
+day_time_window <- Group_Assignment_Dataset[Group_Assignment_Dataset$Hour >= "07:30"
+                                            & Group_Assignment_Dataset$Hour <= "17:00",]
+night_time_window <- Group_Assignment_Dataset[!(Group_Assignment_Dataset$Hour >= "07:30" 
+                            & Group_Assignment_Dataset$Hour <= "17:00"), ]
+
+
+# subsetting the data based on weekday vs weekend and time window
+# because the assignment made a distinction when talking about weekday and weekend
+# NOTE: I'm not actually sure if we're supposed to make a distinction between
+# weekdays and weekends
+weekdays_data_day <- day_time_window[day_time_window$Day 
+                                     %in% c("Monday", "Tuesday", "Wednesday", 
+                                                    "Thursday", "Friday"), ]
+weekends_data_day <- day_time_window[day_time_window$Day 
+                                     %in% c("Saturday","Sunday"), ]
+
+weekdays_data_night <- night_time_window[night_time_window$Day 
+                                     %in% c("Monday", "Tuesday", "Wednesday", 
+                                                    "Thursday", "Friday"), ]
+
+weekends_data_night <- night_time_window[night_time_window$Day 
+                                         %in% c("Saturday","Sunday"),]
+
+
+# testing to see if I filtered the data correctly
+print(Group_Assignment_Dataset)
+print(day_time_window)
+print(night_time_window)
+print(weekdays_data_day)
+print(weekends_data_day)
+print(weekdays_data_night)
+print(weekends_data_night)
+
+table(weekends_data_night$Day)
+table(weekends_data_day$Day)
+table(weekdays_data_night$Day)
+table(weekdays_data_day$Day)
