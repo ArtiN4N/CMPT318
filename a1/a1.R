@@ -105,6 +105,45 @@ end_date   <- as.POSIXct("4/2/2007 00:00:00",  format = "%d/%m/%Y %H:%M:%S")
 df_Week5 <- subset(df_zscores, DateTime >= start_date & DateTime <= end_date)
 print(start_date)
 
+#--------------------------------------------------------------------------
+#                                 Part 2
+#--------------------------------------------------------------------------
+
+# this is the empty correlation matrix we will fill
+mat <- matrix(0, nrow = 7, ncol = 7)
+
+# working with vectors to make things easy
+numeric_vectors <- lapply(numeric_cols, function(col) Group_Assignment_Dataset[[col]])
+
+#
+for (col1 in 1:6) {
+  for (col2 in (col1 + 1):7) {
+    if (col == col2) {
+      break
+    }
+
+    set1 <- numeric_vectors[[col1]]
+    set2 <- numeric_vectors[[col2]]
+
+    # from given function in a1 description
+    # use = pairwise.complete.obs will ignore empty positions in the data
+    corel <- cor(set1, set2, method = "pearson", use = "pairwise.complete.obs")
+    mat[col1, col2] <- corel
+  }
+}
+
+
+
+# putting our matrix into a data fram for ggplot
+matdf <- expand.grid(x = seq_len(nrow(mat)), y = seq_len(ncol(mat)))
+matdf$value <- as.vector(mat)
+
+# ggplot to create a heatmap visual of the correlation matrix
+ggplot(matdf, aes(x = x, y = y, fill = value)) +
+geom_tile() +
+scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0) +
+labs(title = "Visual of the corellation matrix of responses")
+
 
 #--------------------------------------------------------------------------
 #                                 Part 3
