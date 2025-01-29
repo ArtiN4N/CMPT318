@@ -1,4 +1,5 @@
 library(zoo)
+library(ggplot2)
 
 #--------------------------------------------------------------------------
 #                                 Part 1
@@ -119,16 +120,17 @@ Group_Assignment_Dataset$DateTime <- as.POSIXct(paste(Group_Assignment_Dataset$D
 # categories
 Group_Assignment_Dataset$Hour <- format(Group_Assignment_Dataset$DateTime, "%H:%M")
 Group_Assignment_Dataset$Day <- weekdays(Group_Assignment_Dataset$DateTime)  
+Group_Assignment_Dataset$Hour <- as.POSIXct(Group_Assignment_Dataset$DateTime, format = "%H:%M")
+str(Group_Assignment_Dataset)
 
-
+print(Group_Assignment_Dataset)
 # subsetting the data into day time hours and night time hours
 # using the hours specified in the assignment description
-day_time_window <- Group_Assignment_Dataset[Group_Assignment_Dataset$Hour >= "07:30"
-                                            & Group_Assignment_Dataset$Hour <= "17:00",]
-night_time_window <- Group_Assignment_Dataset[!(Group_Assignment_Dataset$Hour >= "07:30" 
-                            & Group_Assignment_Dataset$Hour <= "17:00"), ]
-
-
+day_time_window <- Group_Assignment_Dataset[Group_Assignment_Dataset$Time >= "07:30:00"
+                                            & Group_Assignment_Dataset$Time <= "17:00:00",]
+night_time_window <- Group_Assignment_Dataset[!(Group_Assignment_Dataset$Time >= "07:30:00" 
+                            & Group_Assignment_Dataset$Time <= "17:00:00"), ]
+day_time_window$Time
 # subsetting the data based on weekday vs weekend and time window
 # because the assignment made a distinction when talking about weekday and weekend
 # NOTE: I'm not actually sure if we're supposed to make a distinction between
@@ -160,3 +162,80 @@ table(weekends_data_night$Day)
 table(weekends_data_day$Day)
 table(weekdays_data_night$Day)
 table(weekdays_data_day$Day)
+
+# computing the averages, each time(Hour) with the same value, is grouped together
+weekdays_avg_day <- aggregate(Global_intensity ~ Hour, data = weekdays_data_day, FUN = mean)
+weekends_avg_day <- aggregate(Global_intensity ~ Hour, data = weekends_data_day, FUN = mean)
+
+weekdays_avg_night <- aggregate(Global_intensity ~ Hour, data = weekdays_data_night, FUN = mean)
+weekends_avg_night <- aggregate(Global_intensity ~ Hour, data = weekends_data_night, FUN = mean)
+
+
+# fitting the models
+# the time has to be converted to seconds cause it's not a numeric type on its own
+# The seconds returned is the seconds after epoch (Jan 1st, 1970)
+fit1 <- lm(Global_intensity ~ as.numeric(as.POSIXct(Hour, format="%H:%M")), data = weekdays_avg_day)
+fit2 <- lm(Global_intensity ~ as.numeric(as.POSIXct(Hour, format="%H:%M")), data = weekends_avg_day)
+fit3 <- lm(Global_intensity ~ as.numeric(as.POSIXct(Hour, format="%H:%M")), data = weekdays_avg_night)
+fit4 <- lm(Global_intensity ~ as.numeric(as.POSIXct(Hour, format="%H:%M")), data = weekdays_avg_night)
+polyfit1 = lm(Global_intensity ~ poly(as.numeric(as.POSIXct(Hour, format="%H:%M")), 2, raw=TRUE), data = weekdays_avg_day)
+polyfit2 = lm(Global_intensity ~ poly(as.numeric(as.POSIXct(Hour, format="%H:%M")), 2, raw=TRUE), data = weekends_avg_day)
+polyfit3 = lm(Global_intensity ~ poly(as.numeric(as.POSIXct(Hour, format="%H:%M")), 2, raw=TRUE), data = weekdays_avg_night)
+polyfit4 = lm(Global_intensity ~ poly(as.numeric(as.POSIXct(Hour, format="%H:%M")), 2, raw=TRUE), data = weekends_avg_night)
+
+
+
+#trying to plot
+#I don't believe this is correct
+ggplot() +
+  geom_smooth(data = weekdays_avg_day, 
+              aes(x = as.POSIXct(Hour, format="%H:%M"), 
+              y = Global_intensity),method = "lm", 
+              formula = y ~ x, se = FALSE, color = "red") +
+  geom_smooth(data = weekends_avg_day, 
+              aes(x = as.POSIXct(Hour, format="%H:%M"), 
+                  y = Global_intensity),method = "lm", 
+              formula = y ~ x, se = FALSE, color = "blue") + 
+  geom_smooth(data = weekdays_avg_night, 
+              aes(x = as.POSIXct(Hour, format="%H:%M"), 
+                  y = Global_intensity),method = "lm", 
+              formula = y ~ x, se = FALSE, color = "green") +
+  geom_smooth(data = weekends_avg_night, 
+              aes(x = as.POSIXct(Hour, format="%H:%M"), 
+                  y = Global_intensity),method = "lm", 
+              formula = y ~ x, se = FALSE, color = "yellow") +
+  scale_x_datetime(
+    date_breaks = "1 hour",
+    date_labels = "%H:%M"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)  # Rotate x-axis labels by 45 degrees
+  )
+
+
+ggplot() +
+  geom_smooth(data = weekdays_avg_day, 
+              aes(x = as.POSIXct(Hour, format="%H:%M"), 
+                  y = Global_intensity),method = "lm", 
+              formula = y ~ poly(x,2,raw = TRUE), se = FALSE, color = "red") +
+  geom_smooth(data = weekends_avg_day, 
+              aes(x = as.POSIXct(Hour, format="%H:%M"), 
+                  y = Global_intensity),method = "lm", 
+              formula = y ~ poly(x,2,raw = TRUE), se = FALSE, color = "blue") + 
+  geom_smooth(data = weekdays_avg_night, 
+              aes(x = as.POSIXct(Hour, format="%H:%M"), 
+                  y = Global_intensity),method = "lm", 
+              formula = y ~ poly(x,2,raw = TRUE), se = FALSE, color = "green") +
+  geom_smooth(data = weekends_avg_night, 
+              aes(x = as.POSIXct(Hour, format="%H:%M"), 
+                  y = Global_intensity),method = "lm", 
+              formula = y ~ poly(x,2,raw = TRUE), se = FALSE, color = "yellow") +
+  scale_x_datetime(
+    date_breaks = "1 hour",
+    date_labels = "%H:%M"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)  # Rotate x-axis labels by 45 degrees
+  )
+
+
