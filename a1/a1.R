@@ -1,5 +1,6 @@
 library(zoo)
 library(ggplot2)
+library(reshape2)
 
 #--------------------------------------------------------------------------
 #                                 Part 1
@@ -104,6 +105,63 @@ end_date   <- as.POSIXct("4/2/2007 00:00:00",  format = "%d/%m/%Y %H:%M:%S")
 
 df_Week5 <- subset(df_zscores, DateTime >= start_date & DateTime <= end_date)
 print(start_date)
+
+#--------------------------------------------------------------------------
+# Part 2
+#-------------------------------------------------------------------------- 
+
+
+response_vars <- c("Global_active_power", "Global_reactive_power", "Voltage", "Global_intensity", "Sub_metering_1", "Sub_metering_2", "Sub_metering_3")
+
+
+c_matrix <- cor(df_Week5[, response_vars], method = "pearson")
+
+#print the correlation matrix
+
+c_matrix
+
+# Hepler funct to reorder values
+reorder_cormat <- function(cormat) {
+  dd <- as.dist((1 - cormat) / 2)
+  hc <- hclust(dd)  
+  cormat <- cormat[hc$order, hc$order] 
+  return(cormat)
+}
+
+# Funct to get rid of duplicate
+get_upper_tri <- function(cormat) {
+  cormat[lower.tri(cormat)] <- NA 
+  return(cormat)
+}
+
+c_matrix <- reorder_cormat(c_matrix)
+upper_tri <- get_upper_tri(c_matrix)
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+
+#heatmap
+ggheatmap <- ggplot(melted_cormat, aes(Var2, Var1, fill = value)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = round(value, 2)), color = "black", size = 4) +  
+  scale_fill_gradient2(low = "#50e991", high = "#e60049", mid = "white",
+                       midpoint = 0, limit = c(-1, 1), space = "Lab",
+                       name="Pearson") +
+  theme_minimal() +
+  theme(
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.border = element_blank(),
+    panel.background = element_blank(),
+    axis.ticks = element_blank(),
+    legend.justification = c(1, 0),
+    legend.position = c(0.6, 0.7),
+    legend.direction = "horizontal"
+  ) +
+  guides(fill = guide_colorbar(barwidth = 7, barheight = 1,
+                               title.position = "top", title.hjust = 0.5))
+
+# Print heatmap
+print(ggheatmap)
 
 
 #--------------------------------------------------------------------------
