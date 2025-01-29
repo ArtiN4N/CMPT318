@@ -145,135 +145,216 @@ scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0) +
 labs(title = "Visual of the corellation matrix of responses")
 
 
-#--------------------------------------------------------------------------
-#                                 Part 3
-#--------------------------------------------------------------------------
+# #--------------------------------------------------------------------------
+# #                                 Part 3
+# #--------------------------------------------------------------------------
+
+#first, we can isolate the dataset into just Global_intensity, date, and time
+selected_data <- Group_Assignment_Dataset[, c("Date", "Time", "Global_intensity")]
+
+# Make intensity numeric
+selected_data$Global_intensity <- as.numeric(selected_data$Global_intensity)
+
+# Convert the "Date" column to Date format
+selected_data$Date <- as.Date(selected_data$Date, format="%m/%d/%Y")
+
+# Create a new column for the day of the week (1 = Sunday, 2 = Monday, ..., 7 = Saturday)
+selected_data$DayOfWeek <- weekdays(selected_data$Date)
+
+# Separate the data into weekdays (Mon-Fri) and weekends (Sat-Sun)
+weekdays_df <- selected_data[selected_data$DayOfWeek %in% c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday"), ]
+weekends_df <- selected_data[selected_data$DayOfWeek %in% c("Saturday", "Sunday"), ]
+
+# For weekends_df
+weekends_df$Time <- as.POSIXct(weekends_df$Time, format="%H:%M:%S")
+weekdays_df$Time <- as.POSIXct(weekdays_df$Time, format="%H:%M:%S")
+
+avg_weekends_df <- aggregate(Global_intensity ~ Time, data=weekends_df, FUN=mean)
+avg_weekdays_df <- aggregate(Global_intensity ~ Time, data=weekdays_df, FUN=mean)
 
 
-Group_Assignment_Dataset$DateTime <- as.POSIXct(paste(Group_Assignment_Dataset$Date
-                                                      ,Group_Assignment_Dataset$Time),
-                                                format="%d/%m/%Y %H:%M:%S")
-# adding hour and day rows to the data set 
-# doing this because it is easier to filter the data into different 
-# categories
-Group_Assignment_Dataset$Hour <- format(Group_Assignment_Dataset$DateTime, "%H:%M")
-Group_Assignment_Dataset$Day <- weekdays(Group_Assignment_Dataset$DateTime)  
-Group_Assignment_Dataset$Hour <- as.POSIXct(Group_Assignment_Dataset$DateTime, format = "%H:%M")
-str(Group_Assignment_Dataset)
+weekday_day_df <- subset(avg_weekdays_df, format(Time, "%H:%M") >= "07:00" & format(Time, "%H:%M") <= "22:00")
+weekday_night_df <- subset(avg_weekdays_df, format(Time, "%H:%M") < "07:00" | format(Time, "%H:%M") > "22:00")
+weekend_day_df <- subset(avg_weekends_df, format(Time, "%H:%M") >= "07:00" & format(Time, "%H:%M") <= "22:00")
+weekend_night_df <- subset(avg_weekends_df, format(Time, "%H:%M") < "07:00" | format(Time, "%H:%M") > "22:00")
 
-#print(Group_Assignment_Dataset)
-# subsetting the data into day time hours and night time hours
-# using the hours specified in the assignment description
-day_time_window <- Group_Assignment_Dataset[Group_Assignment_Dataset$Time >= "07:30:00"
-                                            & Group_Assignment_Dataset$Time <= "17:00:00",]
-night_time_window <- Group_Assignment_Dataset[!(Group_Assignment_Dataset$Time >= "07:30:00" 
-                            & Group_Assignment_Dataset$Time <= "17:00:00"), ]
-day_time_window$Time
-# subsetting the data based on weekday vs weekend and time window
-# because the assignment made a distinction when talking about weekday and weekend
-# NOTE: I'm not actually sure if we're supposed to make a distinction between
-# weekdays and weekends
-weekdays_data_day <- day_time_window[day_time_window$Day 
-                                     %in% c("Monday", "Tuesday", "Wednesday", 
-                                                    "Thursday", "Friday"), ]
-weekends_data_day <- day_time_window[day_time_window$Day 
-                                     %in% c("Saturday","Sunday"), ]
+# Function to perform and plot linear and polynomial regression
+perform_regression_plot <- function(data, title) {
+  # Linear regression
+  lin_model <- lm(Global_intensity ~ as.numeric(Time), data=data)
+  
+  # Polynomial regression (quadratic)
+  poly_model <- lm(Global_intensity ~ poly(as.numeric(Time), 2), data=data, raw=TRUE)
+  
+  # Plot
+  ggplot(data, aes(x=Time, y=Global_intensity)) +
+    geom_point(color="blue") +  # Scatter plot of data points
+    geom_smooth(method="lm", formula=y ~ x, color="red", linetype="solid") +  # Linear regression line
+    geom_smooth(method="lm", formula=y ~ poly(x, 2), color="green", linetype="dashed") +  # Polynomial regression line
+    labs(title=title, x="Time", y="Global Intensity") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels for readability
+}
 
-weekdays_data_night <- night_time_window[night_time_window$Day 
-                                     %in% c("Monday", "Tuesday", "Wednesday", 
-                                                    "Thursday", "Friday"), ]
+# Plot for each time window
+perform_regression_plot(weekday_day_df, "Weekday Daytime: Global Intensity vs Time")
+#ggplot2 <- perform_regression_plot(weekday_night_df, "Weekday Nighttime: Global Intensity vs Time")
+perform_regression_plot(weekend_day_df, "Weekend Daytime: Global Intensity vs Time")
+#ggplot4 <- perform_regression_plot(weekend_night_df, "Weekend Nighttime: Global Intensity vs Time")
 
-weekends_data_night <- night_time_window[night_time_window$Day 
-                                         %in% c("Saturday","Sunday"),]
+# Adjust nighttime data to make it continuous
+adjust_nighttime <- function(df) {
+  df$Time <- as.POSIXct(df$Time) + 0
+  
+  return(df)
+}
 
+# Apply the function to adjust nighttime data for weekdays and weekends
+#weekday_night_df_continuous <- adjust_nighttime(weekday_night_df)
+#weekend_night_df_continuous <- adjust_nighttime(weekend_night_df)
 
-# testing to see if I filtered the data correctly
-#print(Group_Assignment_Dataset)
-#print(day_time_window)
-#print(night_time_window)
-#print(weekdays_data_day)
-#print(weekends_data_day)
-#print(weekdays_data_night)
-#print(weekends_data_night)
+head(weekday_night_df$Time)
 
-table(weekends_data_night$Day)
-table(weekends_data_day$Day)
-table(weekdays_data_night$Day)
-table(weekdays_data_day$Day)
-
-# computing the averages, each time(Hour) with the same value, is grouped together
-weekdays_avg_day <- aggregate(Global_intensity ~ Hour, data = weekdays_data_day, FUN = mean)
-weekends_avg_day <- aggregate(Global_intensity ~ Hour, data = weekends_data_day, FUN = mean)
-
-weekdays_avg_night <- aggregate(Global_intensity ~ Hour, data = weekdays_data_night, FUN = mean)
-weekends_avg_night <- aggregate(Global_intensity ~ Hour, data = weekends_data_night, FUN = mean)
+weekday_night_df$Time <- as.POSIXct(weekday_night_df$Time) + 20000
+weekend_night_df$Time <- as.POSIXct(weekend_night_df$Time) + 20000
 
 
-# fitting the models
-# the time has to be converted to seconds cause it's not a numeric type on its own
-# The seconds returned is the seconds after epoch (Jan 1st, 1970)
-fit1 <- lm(Global_intensity ~ as.numeric(as.POSIXct(Hour, format="%H:%M")), data = weekdays_avg_day)
-fit2 <- lm(Global_intensity ~ as.numeric(as.POSIXct(Hour, format="%H:%M")), data = weekends_avg_day)
-fit3 <- lm(Global_intensity ~ as.numeric(as.POSIXct(Hour, format="%H:%M")), data = weekdays_avg_night)
-fit4 <- lm(Global_intensity ~ as.numeric(as.POSIXct(Hour, format="%H:%M")), data = weekdays_avg_night)
-polyfit1 = lm(Global_intensity ~ poly(as.numeric(as.POSIXct(Hour, format="%H:%M")), 2, raw=TRUE), data = weekdays_avg_day)
-polyfit2 = lm(Global_intensity ~ poly(as.numeric(as.POSIXct(Hour, format="%H:%M")), 2, raw=TRUE), data = weekends_avg_day)
-polyfit3 = lm(Global_intensity ~ poly(as.numeric(as.POSIXct(Hour, format="%H:%M")), 2, raw=TRUE), data = weekdays_avg_night)
-polyfit4 = lm(Global_intensity ~ poly(as.numeric(as.POSIXct(Hour, format="%H:%M")), 2, raw=TRUE), data = weekends_avg_night)
+head(weekday_night_df$Time)
+
+weekday_night_df <- weekday_night_df[order(weekday_night_df$Time), ]
+weekend_night_df <- weekend_night_df[order(weekend_night_df$Time), ]
+
+
+# You can now apply your regression as before on the combined data
+# For example, perform regression and plotting as in the previous code
+perform_regression_plot(weekday_night_df, "Weekday Nighttime (Continuous): Global Intensity vs Time")
+perform_regression_plot(weekend_night_df, "Weekend Nighttime (Continuous): Global Intensity vs Time")
+
+# Print the plot
+
+# Group_Assignment_Dataset$DateTime <- as.POSIXct(paste(Group_Assignment_Dataset$Date
+#                                                       ,Group_Assignment_Dataset$Time),
+#                                                 format="%d/%m/%Y %H:%M:%S")
+# # adding hour and day rows to the data set 
+# # doing this because it is easier to filter the data into different 
+# # categories
+# Group_Assignment_Dataset$Hour <- format(Group_Assignment_Dataset$DateTime, "%H:%M")
+# Group_Assignment_Dataset$Day <- weekdays(Group_Assignment_Dataset$DateTime)  
+# Group_Assignment_Dataset$Hour <- as.POSIXct(Group_Assignment_Dataset$DateTime, format = "%H:%M")
+# str(Group_Assignment_Dataset)
+
+# #print(Group_Assignment_Dataset)
+# # subsetting the data into day time hours and night time hours
+# # using the hours specified in the assignment description
+# day_time_window <- Group_Assignment_Dataset[Group_Assignment_Dataset$Time >= "07:30:00"
+#                                             & Group_Assignment_Dataset$Time <= "17:00:00",]
+# night_time_window <- Group_Assignment_Dataset[!(Group_Assignment_Dataset$Time >= "07:30:00" 
+#                             & Group_Assignment_Dataset$Time <= "17:00:00"), ]
+# day_time_window$Time
+# # subsetting the data based on weekday vs weekend and time window
+# # because the assignment made a distinction when talking about weekday and weekend
+# # NOTE: I'm not actually sure if we're supposed to make a distinction between
+# # weekdays and weekends
+# weekdays_data_day <- day_time_window[day_time_window$Day 
+#                                      %in% c("Monday", "Tuesday", "Wednesday", 
+#                                                     "Thursday", "Friday"), ]
+# weekends_data_day <- day_time_window[day_time_window$Day 
+#                                      %in% c("Saturday","Sunday"), ]
+
+# weekdays_data_night <- night_time_window[night_time_window$Day 
+#                                      %in% c("Monday", "Tuesday", "Wednesday", 
+#                                                     "Thursday", "Friday"), ]
+
+# weekends_data_night <- night_time_window[night_time_window$Day 
+#                                          %in% c("Saturday","Sunday"),]
+
+
+# # testing to see if I filtered the data correctly
+# #print(Group_Assignment_Dataset)
+# #print(day_time_window)
+# #print(night_time_window)
+# #print(weekdays_data_day)
+# #print(weekends_data_day)
+# #print(weekdays_data_night)
+# #print(weekends_data_night)
+
+# table(weekends_data_night$Day)
+# table(weekends_data_day$Day)
+# table(weekdays_data_night$Day)
+# table(weekdays_data_day$Day)
+
+# # computing the averages, each time(Hour) with the same value, is grouped together
+# weekdays_avg_day <- aggregate(Global_intensity ~ Hour, data = weekdays_data_day, FUN = mean)
+# weekends_avg_day <- aggregate(Global_intensity ~ Hour, data = weekends_data_day, FUN = mean)
+
+# weekdays_avg_night <- aggregate(Global_intensity ~ Hour, data = weekdays_data_night, FUN = mean)
+# weekends_avg_night <- aggregate(Global_intensity ~ Hour, data = weekends_data_night, FUN = mean)
+
+
+# # fitting the models
+# # the time has to be converted to seconds cause it's not a numeric type on its own
+# # The seconds returned is the seconds after epoch (Jan 1st, 1970)
+# fit1 <- lm(Global_intensity ~ as.numeric(as.POSIXct(Hour, format="%H:%M")), data = weekdays_avg_day)
+# fit2 <- lm(Global_intensity ~ as.numeric(as.POSIXct(Hour, format="%H:%M")), data = weekends_avg_day)
+# fit3 <- lm(Global_intensity ~ as.numeric(as.POSIXct(Hour, format="%H:%M")), data = weekdays_avg_night)
+# fit4 <- lm(Global_intensity ~ as.numeric(as.POSIXct(Hour, format="%H:%M")), data = weekdays_avg_night)
+# polyfit1 = lm(Global_intensity ~ poly(as.numeric(as.POSIXct(Hour, format="%H:%M")), 2, raw=TRUE), data = weekdays_avg_day)
+# polyfit2 = lm(Global_intensity ~ poly(as.numeric(as.POSIXct(Hour, format="%H:%M")), 2, raw=TRUE), data = weekends_avg_day)
+# polyfit3 = lm(Global_intensity ~ poly(as.numeric(as.POSIXct(Hour, format="%H:%M")), 2, raw=TRUE), data = weekdays_avg_night)
+# polyfit4 = lm(Global_intensity ~ poly(as.numeric(as.POSIXct(Hour, format="%H:%M")), 2, raw=TRUE), data = weekends_avg_night)
 
 
 
-#trying to plot
-#I don't believe this is correct
-ggplot() +
-  geom_smooth(data = weekdays_avg_day, 
-              aes(x = as.POSIXct(Hour, format="%H:%M"), 
-              y = Global_intensity),method = "lm", 
-              formula = y ~ x, se = FALSE, color = "red") +
-  geom_smooth(data = weekends_avg_day, 
-              aes(x = as.POSIXct(Hour, format="%H:%M"), 
-                  y = Global_intensity),method = "lm", 
-              formula = y ~ x, se = FALSE, color = "blue") + 
-  geom_smooth(data = weekdays_avg_night, 
-              aes(x = as.POSIXct(Hour, format="%H:%M"), 
-                  y = Global_intensity),method = "lm", 
-              formula = y ~ x, se = FALSE, color = "green") +
-  geom_smooth(data = weekends_avg_night, 
-              aes(x = as.POSIXct(Hour, format="%H:%M"), 
-                  y = Global_intensity),method = "lm", 
-              formula = y ~ x, se = FALSE, color = "yellow") +
-  scale_x_datetime(
-    date_breaks = "1 hour",
-    date_labels = "%H:%M"
-  ) +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1)  # Rotate x-axis labels by 45 degrees
-  )
+# #trying to plot
+# #I don't believe this is correct
+# ggplot() +
+#   geom_smooth(data = weekdays_avg_day, 
+#               aes(x = as.POSIXct(Hour, format="%H:%M"), 
+#               y = Global_intensity),method = "lm", 
+#               formula = y ~ x, se = FALSE, color = "red") +
+#   geom_smooth(data = weekends_avg_day, 
+#               aes(x = as.POSIXct(Hour, format="%H:%M"), 
+#                   y = Global_intensity),method = "lm", 
+#               formula = y ~ x, se = FALSE, color = "blue") + 
+#   geom_smooth(data = weekdays_avg_night, 
+#               aes(x = as.POSIXct(Hour, format="%H:%M"), 
+#                   y = Global_intensity),method = "lm", 
+#               formula = y ~ x, se = FALSE, color = "green") +
+#   geom_smooth(data = weekends_avg_night, 
+#               aes(x = as.POSIXct(Hour, format="%H:%M"), 
+#                   y = Global_intensity),method = "lm", 
+#               formula = y ~ x, se = FALSE, color = "yellow") +
+#   scale_x_datetime(
+#     date_breaks = "1 hour",
+#     date_labels = "%H:%M"
+#   ) +
+#   theme(
+#     axis.text.x = element_text(angle = 45, hjust = 1)  # Rotate x-axis labels by 45 degrees
+#   )
 
 
-ggplot() +
-  geom_smooth(data = weekdays_avg_day, 
-              aes(x = as.POSIXct(Hour, format="%H:%M"), 
-                  y = Global_intensity),method = "lm", 
-              formula = y ~ poly(x,2,raw = TRUE), se = FALSE, color = "red") +
-  geom_smooth(data = weekends_avg_day, 
-              aes(x = as.POSIXct(Hour, format="%H:%M"), 
-                  y = Global_intensity),method = "lm", 
-              formula = y ~ poly(x,2,raw = TRUE), se = FALSE, color = "blue") + 
-  geom_smooth(data = weekdays_avg_night, 
-              aes(x = as.POSIXct(Hour, format="%H:%M"), 
-                  y = Global_intensity),method = "lm", 
-              formula = y ~ poly(x,2,raw = TRUE), se = FALSE, color = "green") +
-  geom_smooth(data = weekends_avg_night, 
-              aes(x = as.POSIXct(Hour, format="%H:%M"), 
-                  y = Global_intensity),method = "lm", 
-              formula = y ~ poly(x,2,raw = TRUE), se = FALSE, color = "yellow") +
-  scale_x_datetime(
-    date_breaks = "1 hour",
-    date_labels = "%H:%M"
-  ) +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1)  # Rotate x-axis labels by 45 degrees
-  )
+# ggplot() +
+#   geom_smooth(data = weekdays_avg_day, 
+#               aes(x = as.POSIXct(Hour, format="%H:%M"), 
+#                   y = Global_intensity),method = "lm", 
+#               formula = y ~ poly(x,2,raw = TRUE), se = FALSE, color = "red") +
+#   geom_smooth(data = weekends_avg_day, 
+#               aes(x = as.POSIXct(Hour, format="%H:%M"), 
+#                   y = Global_intensity),method = "lm", 
+#               formula = y ~ poly(x,2,raw = TRUE), se = FALSE, color = "blue") + 
+#   geom_smooth(data = weekdays_avg_night, 
+#               aes(x = as.POSIXct(Hour, format="%H:%M"), 
+#                   y = Global_intensity),method = "lm", 
+#               formula = y ~ poly(x,2,raw = TRUE), se = FALSE, color = "green") +
+#   geom_smooth(data = weekends_avg_night, 
+#               aes(x = as.POSIXct(Hour, format="%H:%M"), 
+#                   y = Global_intensity),method = "lm", 
+#               formula = y ~ poly(x,2,raw = TRUE), se = FALSE, color = "yellow") +
+#   scale_x_datetime(
+#     date_breaks = "1 hour",
+#     date_labels = "%H:%M"
+#   ) +
+#   theme(
+#     axis.text.x = element_text(angle = 45, hjust = 1)  # Rotate x-axis labels by 45 degrees
+#   )
 
 
