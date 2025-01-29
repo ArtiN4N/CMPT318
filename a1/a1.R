@@ -111,10 +111,10 @@ print(start_date)
 #-------------------------------------------------------------------------- 
 
 
-response_vars <- c("Global_active_power", "Global_reactive_power", "Voltage", "Global_intensity", "Sub_metering_1", "Sub_metering_2", "Sub_metering_3")
+vars <- c("Global_active_power", "Global_reactive_power", "Voltage", "Global_intensity", "Sub_metering_1", "Sub_metering_2", "Sub_metering_3")
 
 
-c_matrix <- cor(df_Week5[, response_vars], method = "pearson")
+c_matrix <- cor(df_Week5[, vars], method = "pearson")
 
 #print the correlation matrix
 
