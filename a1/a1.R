@@ -118,7 +118,6 @@ Group_Assignment_Dataset$DateTime <- as.POSIXct(paste(Group_Assignment_Dataset$D
 # adding hour and day rows to the data set 
 # doing this because it is easier to filter the data into different 
 # categories
-#Group_Assignment_Dataset$Hour <- format(Group_Assignment_Dataset$DateTime, "%H:%M")
 Group_Assignment_Dataset$Day <- weekdays(Group_Assignment_Dataset$DateTime)  
 #Group_Assignment_Dataset$Hour <- as.POSIXct(Group_Assignment_Dataset$DateTime, format = "%H:%M")
 
