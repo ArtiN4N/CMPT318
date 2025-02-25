@@ -88,3 +88,13 @@ plot(results$numStates, results$BIC,
      ylab = "BIC",
      main = "States vs. BIC"
 )
+#-------------------------------------------------------
+#  Question 2
+#-------------------------------------------------------
+
+# Rounding the global active power variable to the nearest half or whole number
+df_round <- df_window
+# must multiply by 2 and then divide by 2 because otherwise we wouldn't be able
+# to round the the half integer case
+df_round$Global_active_power <- round(df_round$Global_active_power * 2) / 2
+
