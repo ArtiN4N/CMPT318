@@ -63,7 +63,6 @@ library(depmixS4)
 
 
 # Create a DateTime column (POSIXct). 
-# Adjust the format if your date/time are in different formats.
 df_scaled$DateTime <- as.POSIXct(
   paste(df_scaled$Date, df_scaled$Time),
   format = "%Y-%m-%d %H:%M:%S"
