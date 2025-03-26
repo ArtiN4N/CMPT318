@@ -69,7 +69,7 @@ df_scaled$DateTime <- as.POSIXct(
 
 
 # Extract year for splitting. 
-cat("Extracting Year from DateTime...\n")
+cat("Extracting Year from DateTime\n")
 df_scaled$Year <- as.numeric(format(df_scaled$DateTime, "%Y"))
 
 # Split into train vs. test (Years 2006, 2007, 2008 -> train; 2009 -> test).
@@ -117,7 +117,7 @@ print(dim(test_mat))
 cat("\nTraining multiple HMMs with depmixS4...\n")
 
 #possible_states <- c(4, 5, 6, 8, 10, 12, 15, 20)
-possible_states <- c(6)
+possible_states <- c(6, 8, 10, 12, 15, 20)
 results_list <- list()
 
 for (nst in possible_states) {
@@ -203,7 +203,6 @@ norm_test_ll  <- test_logLik / nrow(test_mat)
 
 cat("\nNormalized Train LL =", norm_train_ll, 
     "\nNormalized Test  LL =", norm_test_ll, "\n")
-
 
 # Part 4
 
