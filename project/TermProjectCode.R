@@ -58,7 +58,6 @@ ggbiplot(pca_result,
 
 # ---- Part 3---- #
 
-
 library(depmixS4)   
 
 
@@ -101,8 +100,8 @@ cat("test_sub  rows:", nrow(test_sub),  "\n")
 
 # Select PCA-based features from Part 2. 
 cat("\nSelecting PCA-based numeric columns...\n")
-train_mat <- train_sub[, c("Global_active_power", "Voltage", "Sub_metering_1")]
-test_mat  <- test_sub[,  c("Global_active_power", "Voltage", "Sub_metering_1")]
+train_mat <- train_sub[, c("Global_active_power", "Voltage", "Global_intensity")]
+test_mat  <- test_sub[,  c("Global_active_power", "Voltage", "Global_intensity")]
 
 cat("Check for NAs in train_mat:\n")
 print(colSums(is.na(train_mat)))
@@ -139,7 +138,7 @@ for (nst in possible_states) {
   # Fit the model
   set.seed(123)
   mod_fit <- fit(mod_spec, verbose = FALSE)
-
+  
   # Extract logLik and BIC
   ll_val  <- logLik(mod_fit)
   bic_val <- BIC(mod_fit)
