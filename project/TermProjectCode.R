@@ -65,8 +65,9 @@ library(depmixS4)
 # Create a DateTime column (POSIXct). 
 df_scaled$DateTime <- as.POSIXct(
   paste(df_scaled$Date, df_scaled$Time),
-  format = "%Y-%m-%d %H:%M:%S"
+  format = "%d/%m/%Y %H:%M:%S"
 )
+
 
 # Extract year for splitting. 
 cat("Extracting Year from DateTime...\n")
@@ -116,7 +117,8 @@ print(dim(test_mat))
 # Train multiple HMMs with different state numbers. 
 cat("\nTraining multiple HMMs with depmixS4...\n")
 
-possible_states <- c(4, 5, 6, 8, 10, 12, 15, 20)
+#possible_states <- c(4, 5, 6, 8, 10, 12, 15, 20)
+possible_states <- c(6)
 results_list <- list()
 
 for (nst in possible_states) {
@@ -137,7 +139,7 @@ for (nst in possible_states) {
   # Fit the model
   set.seed(123)
   mod_fit <- fit(mod_spec, verbose = FALSE)
-  
+
   # Extract logLik and BIC
   ll_val  <- logLik(mod_fit)
   bic_val <- BIC(mod_fit)
@@ -204,5 +206,87 @@ cat("\nNormalized Train LL =", norm_train_ll,
     "\nNormalized Test  LL =", norm_test_ll, "\n")
 
 
+# Part 4
+
+cat("\nBest params ", best_params, "\n")
+
+testRows <- nrow(test_mat)
+# split into 10 subsets
+rowsPWeek <- ceiling(testRows / 10)
+# create subsets
+testSS <- split(test_mat, rep(1:10, each = rowsPWeek, length.out = testRows))
 
 
+# for storing log likelihoods
+weeksLL <- numeric(10)
+
+cat("Subset 4 size:", nrow(testSS[[4]]), "\n")
+sum(is.na(testSS[[4]]))
+
+print(best_params)
+
+for (i in 1:10) {
+  cat("\n\nEvaluating Week", i, "\n")
+  print(sum(is.na(testSS[[i]])))
+  
+  
+  ssSpecification <- depmix(
+    list(
+      testSS[[i]][,1] ~ 1,
+      testSS[[i]][,2] ~ 1,
+      testSS[[i]][,3] ~ 1
+    ),
+    data    = testSS[[i]],
+    nstates = best_num_states,
+    family  = list(gaussian(), gaussian(), gaussian()),
+    ntimes  = nrow(testSS[[i]])
+  )
+
+  #set.seed(123)
+  #mod_fit <- fit(ssSpecification, verbose = FALSE)
+
+  # Extract logLik and BIC
+  #ll_val  <- logLik(mod_fit)
+  
+  
+  ssModel <- setpars(ssSpecification, best_params)
+  fbSS <- forwardbackward(ssModel)
+  weeksLL[i] <- fbSS$logLike
+
+  cat("\nLog-Likelihood for subset", i, ":", fbSS$logLike, "\n")
+}
+
+# finding max deviation
+normalizedWeeksLL <- weeksLL / rowsPWeek
+mDeviation <- max(abs(normalizedWeeksLL - norm_train_ll))
+
+cat("\nMaximum Deviation from Train Log-Likelihood =", mDeviation, "\n")
+
+subset_spec <- depmix(
+  list(
+    testSS[[4]][,1] ~ 1,
+    testSS[[4]][,2] ~ 1,
+    testSS[[4]][,3] ~ 1
+  ),
+  data    = testSS[[4]],
+  nstates = best_num_states,
+  family  = list(gaussian(), gaussian(), gaussian()),
+  ntimes  = nrow(testSS[[4]])
+)
+
+subset_model <- tryCatch({
+  setpars(subset_spec, best_params)
+}, error = function(e) {
+  cat("Error in setting parameters:", e$message, "\n")
+  NULL
+})
+
+if (!is.null(subset_model)) {
+  fb_subset <- forwardbackward(subset_model)
+  cat("Log-Likelihood for subset 4:", fb_subset$logLike, "\n")
+} else {
+  cat("Model fitting failed for subset 4.\n")
+}
+
+summary(testSS[[4]])
+summary(testSS[[3]])
