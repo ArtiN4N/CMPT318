@@ -44,6 +44,9 @@ numerical_data = df_scaled[3:9]
 pca_result <- prcomp(numerical_data, scale = FALSE)  # data is already scaled
 summary(pca_result)
 
+# Viewing the loadings of the variables
+pca_result$rotation
+
 # Create biplot
 ggbiplot(pca_result,
          obs.scale = 1,
